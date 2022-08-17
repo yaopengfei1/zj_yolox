@@ -1,0 +1,3 @@
+[submodule "YOLOX_outputs"]
+	path = YOLOX_outputs
+	url = ssh://git@gitlab.szzhijing.com:22222/aiid/yolox_model.git

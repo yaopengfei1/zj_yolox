@@ -1,0 +1,120 @@
+
+name: &name blg
+data:
+  root_dir: &root_dir /data/ypf/yingyu_caiji/blg
+  img_dir: !join [*root_dir, /cls12/images]
+  good_json_path: !join [*root_dir, /cls12/annotations/train5_cls12_blg.json]
+  fabric_border_file: !join [*root_dir, /annotations/background_border_info.xlsx]
+  defect_json_path: ''
+  out_img_dir: !join [*root_dir, /cls12/fake_defect/images]
+  out_json_path: !join [*root_dir, /cls12/fake_defect/, *name, _jxwx.json]
+  num_imgs: 300 # 使用良品数量
+  category_ids: [1, 2]  # 填写需要造的疵点id
+  seed: 1
+  plot_defect: # 生成带bbox的fake疵点聚合图，便于合成分析调试
+    switch: true
+    out_dir: !join [./defect_dir/, *name]
+
+proc_json:
+  switch: false
+
+warp_det: 
+  rot_degree: 0 # 旋转角度，用于矫正拍摄角度比较固定的场景，可提高经纬线纹理检测的成功率
+  binaryzation: 
+    blockSize: 85
+    C: -85
+  scale: 6
+  dilate_iter: 10
+  erode_iter: 11  # 迭代轮数越多，噪声去除越彻底
+  min_num_cnts: 10 # 最小hole line的轮廓数
+  warp_dist: 40
+  warp_overlap: 280
+  weft_dist: 40
+  weft_overlap: 280
+  min_line: 180
+  num_candidate: 100 # 候选hole/yarn line的数量，确定后从中选择一个line进行deform
+
+weft_det: 
+  rot_degree: 0 # 旋转角度，用于矫正拍摄角度比较固定的场景，可提高经纬线纹理检测的成功率
+  binaryzation: 
+    blockSize: 85
+    C: -85
+  scale: 8
+  dilate_iter: 3
+  erode_iter: 4  # 迭代轮数越多，噪声去除越彻底
+  min_num_cnts: 10 # 最小hole line的轮廓数
+  warp_dist: 40
+  warp_overlap: 280
+  weft_dist: 40
+  weft_overlap: 280
+  min_line: 180
+  num_candidate: 100 # 候选hole/yarn line的数量，确定后从中选择一个line进行deform
+
+
+jingxiang: 
+  type1:
+    num_sample: 2 # 1张良品图片制造此疵点形态的梳理，0相当于switch，表示不造此类型疵点
+    min_length: 500 # 经向最短长度
+    gap: 3  
+    deform_stride: 6 # 形变时src点到dst点的移位步幅
+    fluct_rates: [0.3, 2.5] # deform_stride的扰动幅度
+  type2:
+    num_sample: 1
+    gap: 2
+    deform_stride: 8
+    fluct_rates: [0.3, 1.1] 
+  type3:
+    num_sample: 0
+    strides1: [1, 2]
+    strides2: [2, 5]
+    min_length: 500 
+    brightness_prob: 0.0 # 仅通过亮度调整实现fake的概率
+    highlight_prob: 1.0  # 亮度调整里，往高亮方向调整的概率
+    delta_brightness1: [30, 40] # 亮度调整里，像素值增加或者较少的值
+    delta_brightness2: [-25, 25] # 移位调整时，顺带的像素值变换幅度
+    
+weixiang:
+  min_length: 500 # 纬向最短长度 
+  type1:
+    num_sample: 3
+    strides: [8, 10]
+    resize_rates: [2.0, 3]
+    delta_brightness: [25, 30]
+    mixup_rates: [0.2, 0.4]
+  type2:
+    num_sample: 3
+    strides: [8, 10]
+    delta_brightness: [40, 50]
+    offsets: [3, 6]
+    mixup_rates: [0.2, 0.3]
+
+dianzhuang:
+  mix_dir: /root/zj_yolox/data_ex/materials/dianzhuang/mix
+  feihua_dir: /root/zj_yolox/data_ex/materials/dianzhuang/mianqiu
+  type1:
+    num_sample: 1 
+    mean_length: 80 # 经向结子的平均长度，浮动范围在上下2倍之间浮动
+    fluct_rates: [0.5, 1.5]
+    end_size: 15 # hole两端源点离hole中心点距离
+    deform_stride: 10
+  type2:
+    num_sample: 1
+
+yiwuzhiru: ''
+
+podong: ''
+
+wuzisha: ''
+
+wuji: ''
+
+duanci: ''
+
+tuosha: ''
+
+jingxiangpobian: ''
+
+yiwu: ''
+
+feihua: ''
+

@@ -1,0 +1,106 @@
+
+global:
+  train_fabric_tag: &train_fabric_tag mix10_v1
+  transfer_fabric_tag: &transfer_fabric_tag yx3-1v1
+  model_tag: &model_tag yolox_m_mix10_v1_cls12
+  root_json_dir: &root_json_dir /data/ypf/yingyu_cai/
+  root_model_dir: &root_model_dir /data/zjx/model/YOLOX_outputs
+  total_img_dir: &total_img_dir /data/ypf/image_place/images/
+  train_label_dir: &root_label_dir !join [*root_json_dir, *train_fabric_tag]
+  train_model_dir: &train_model_dir !join [*root_model_dir, *model_tag]
+  transfer_label_dir: &transfer_label_dir !join [*root_json_dir, *transfer_fabric_tag]
+
+  fabric_border_model: /data/zjx/model/fabric_border/c3_phase2_model_best.pth
+
+
+clone: # 融合造缺陷，比如在目标良品中造异物、破洞、破边等size较大或对比度差异值大的疵点
+  switch: true
+  src_json: &src_json ''
+  fabrics: # 允许串行处理多种坯布
+    - tag: yx3-1 # dst fabric tag
+      src_json: ''  # src_fabric
+      good_json: ''  # dst_fabric, 如不填写，则默认为yx3-1.json
+      category: [5, 10]
+      num_sample: 1000
+      delta_mean: null  # src良品图与dst良品图的亮度均值差
+      out_json_file: !join [*root_json_dir, /yx3-1/cls12/clone/podong_pobian.json]
+      out_img_dir: !join [*root_json_dir, /yx3-1/cls12/clone/img]
+      copy2global: false  # 将clone图片复制到全局图片目录中，慎用！
+
+    - tag: yx3-1 # 因异物要求边缘边角clone，因此安排单独合成 
+      src_json: *src_json
+      category: [5, 10]
+      num_sample: 500
+      delta_mean: null  # src良品图与dst良品图的亮度均值差
+      copy2global: false  # 将clone图片复制到全局图片目录中，慎用！
+
+    - dw5-3l:
+        category: [5, 10]
+        category: [5, 10]
+ 
+faker:
+  switch: false
+  base_yaml: ./exps/defect_yaml/yx2-2v2.yaml
+
+preprocessor:
+  switch: false
+  background:
+    switch: false
+    json_file:
+      - mix7_v2: ''
+      - yx3-1v1: ''
+      - yx3-1v1_clone:
+        - podongpobian: ''
+        - yiwu: ''
+      - background:
+          - metal: ''
+          - qr_code: ''
+          - reflective_cloth: ''
+    split:
+      - [0.5, 0.5]
+      - [0.8, 0.2]
+
+trainer:
+  switch: false
+  template_exp: ./exps/yolox_template.py
+  custom_exp: &custom_exp !join [./exps/train/, *model_tag, .py]
+  batch_size: 64
+  ckpt: ''
+  resume: false
+  custom:
+    data_dir: /data/ypf/yingyu_caiji/mix7_v2/cls12
+    train_ann: train_cls12_mix7_v2.json
+    val_ann: &val_ann val_cls12_mix7_v2.json
+    test_ann: &val_ann 
+    img_mode: BGR
+    data_num_workers: 4
+    eval_interval: 5
+    num_classes: 12
+
+test:
+  switch: false
+  custom_exp: *custom_exp
+  ckpt: !join [*train_model_dir, best_ckpt.pth]
+  result_json: &result_json !join [*train_model_dir, yolox_testdev_2017_new.json]
+  multi_scale:
+    switch: false
+    tsize: 416
+    
+
+case_analysis:
+  switch: false
+  label_json: !join [*train_label_dir, /annotations/, *val_ann]
+  result_json: *result_json
+  img_dir: *total_img_dir
+  conf_thres: 0.3
+
+transfer:
+  switch: false
+
+predictor:
+  switch: false
+  model_list:
+    - mix5_xw: ''
+    - mix7_v2: ''
+  report_file: ''
+
